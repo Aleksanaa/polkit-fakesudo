@@ -1,0 +1,232 @@
+#!/bin/bash
+
+ImplementDir="/usr/lib/polkit-fakesudo/implement.sh"
+ExecuteUser=""
+ExecuteGroup=()
+ChangeHomeDir=0
+PreserveEnv=0
+Edit=""
+RunInBackground=0
+Login=0
+Debug=0
+SpecifiedVariables=()
+
+printhelp(){
+	cat /usr/share/polkit-fakesudo/help1
+	if [[ $1 == "short" ]];then
+		exit 1
+	elif [[ $1 == "long" ]];then
+		cat /usr/share/polkit-fakesudo/help2
+		exit 0
+	fi
+}
+
+checkuser(){
+	if [[ ! $(awk -F ':' '{print $1}' /etc/passwd | grep "$1") == "$1" ]];then
+		echo -e "sudo: unknown user $1"
+		exit 1
+	fi
+}
+
+checkgroup(){
+	if [[ ! $(awk -F ':' '{print $1}' /etc/group | grep "$1") == "$1" ]];then
+		echo -e "sudo: unknown group $1"
+		exit 1
+	fi
+}
+
+checkconflicts(){
+	Conflicts=(-e -h -i -K -l -s -v -V)
+	if [ "${1:0:1}" == "-" ];then
+		if [[ "${Conflicts[*]}" =~ $1 ]];then
+			echo "sudo: Only one of the -e, -h, -i, -l or -V options may be specified"
+			printhelp short
+		fi
+	fi
+}
+
+ConflictNum=0
+checkallconflicts(){
+	ConflictNum=$(expr $ConflictNum + 1)
+	if [[ $ConflictNum == 2 ]];then
+		echo "sudo: Only one of the -e, -h, -i, -l or -V options may be specified"
+		printhelp short
+	fi
+}
+
+while : ;do
+	case $1 in
+	-u)
+		if [ ! "$2" ];then
+			echo "sudo: option requires an argument -- 'u'"
+			printhelp short
+		fi
+		checkuser "$2"
+		ExecuteUser=$2
+		shift 2
+		;;
+	--user=*)
+		checkuser "${1#*=}"
+		ExecuteUser=${1#*=}
+		shift
+		;;
+	-e | --edit)
+		checkallconflicts
+		if [ "$2" ];then
+			checkconflicts "$2"
+			Edit=$2
+			shift 2
+		else
+			printhelp short
+		fi
+		;;
+	-g)
+		if [ ! "$2" ];then
+			echo "sudo: option requires an argument -- 'g'"
+			printhelp short
+		fi
+		checkgroup "$2"
+		ExecuteGroup[${#ExecuteGroup[@]}]=$2
+		shift 2
+		;;
+	--group=*)
+		checkgroup "${1#*=}"
+		ExecuteGroup[${#ExecuteGroup[@]}]=${1#*=}
+		shift
+		;;
+	-D)
+		echo "sudo: you are not permitted to use the -D option with whatever on your computer(WTF"
+		shift
+		;;
+	-H | --set-home)
+		ChangeHomeDir=1
+		shift
+		;;
+	-T | --command-timeout=*)
+		echo "sudo: sorry, you are not allowed set a command timeout"
+		exit 1
+		;;
+	-h | --help)
+		checkallconflicts
+		printhelp long
+		;;
+	-b | --background)
+		RunInBackground=1
+		shift
+		;;
+	-V | --version)
+		checkallconflicts
+		echo "Sudo version 1.9.198.10"
+		exit 0
+		;;
+	-P | --preserve-groups)
+		args=($(groups))
+		unset "args[${#args[@]}-1]"
+		ExecuteGroup=("${ExecuteGroup[@]}"  "${args[@]}")
+		shift
+		;;
+	-E | --preserve-env)
+		PreserveEnv=1
+		shift
+		;;
+	--preserve-env=*)
+		PreserveEnv=${1#*=}
+		;;
+	-i | --login)
+		checkallconflicts
+		Login=1
+		shift
+		;;
+	--debug)
+		Debug=1
+		shift
+		;;
+	-*=*)
+		echo "WARNING: Option $1 not supported.Ignored."
+		shift
+		;;
+	*=*)
+		SpecifiedVariables[${#SpecifiedVariables[@]}]=$1
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	-*)
+		echo "WARNING: Option $1 not supported.Ignored."
+		shift
+		;;
+	*)
+		break
+		;;
+	esac
+done
+
+if [ "$Edit" ];then
+	if [ "$SUDO_EDITOR" ];then
+		editor=$SUDO_EDITOR
+	elif [ "$VISUAL" ];then
+		editor=$VISUAL
+	elif [ "$EDITOR" ];then
+		editor=$EDITOR
+	else
+		editor="/usr/bin/vi"
+	fi
+fi
+
+Command="pkexec"
+MainCommand=("$@")
+if [[ $Login == 1 ]];then
+	Command=${Command}" su"
+	if [[ "$ExecuteUser" ]];then
+		Command=${Command}" "${ExecuteUser}
+	fi
+	if [[ "$ExecuteGroup" ]];then
+		for Group in $ExecuteGroup;do
+			Command=${Command}" -g "${Group}
+		done
+	fi
+else
+	if [[ ! $Edit && ! $MainCommand ]];then
+		printhelp short
+	fi
+	if [[ $ExecuteUser ]];then
+		Command=${Command}" --user "${ExecuteUser}
+	else
+		ExecuteUser="root"
+	fi
+	Command=${Command}" "${ImplementDir}" "${PWD}
+	if [[ $ChangeHomeDir == 0 ]];then
+		Command=${Command}" "${HOME}
+	else
+		Command=${Command}" "$(grep $ExecuteUser /etc/passwd | awk -F ':' '{print $6}')
+	fi
+fi
+
+if [[ $PreserveEnv == 1 ]];then
+	Command=${Command}" "$(echo $(env))
+elif [[ $PreserveEnv != 0 ]];then
+	Command=${Command}" "$(env | grep "$PreserveEnv")
+fi
+
+Command=${Command}" "${SpecifiedVariables[*]}
+
+if [[ $Edit ]];then
+	Command=${Command}" "${editor}" "${Edit}
+elif [[ $MainCommand ]];then
+	Command=${Command}" "$@
+fi
+
+if [[ $RunInBackground == 1 ]];then
+	Command=${Command}" > /dev/null 2>&1 &"
+fi
+
+if [[ $Debug == 1 ]];then
+	echo "Debug Mode is on.The command Generated is:"
+	echo -e "$Command"
+fi
+eval "$Command"
+			
+
+

@@ -1,0 +1,4 @@
+usage: sudo -h | -V
+usage: sudo -l [-g group] [-h host] [-u user] [command]
+usage: sudo [-C num] [-D directory] [-g group] [-u user] [VAR=value] [-i] [<command>]
+usage: sudo -e [-D directory] [-u user] file ...
