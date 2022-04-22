@@ -223,7 +223,7 @@ if [[ $RunInBackground == 1 ]];then
 fi
 
 if [[ $Debug == 1 ]];then
-	echo "Debug Mode is on.The command Generated is:"
+	echo "Debug mode is on.The command generated is:"
 	echo -e "$Command"
 fi
 eval "$Command"
