@@ -4,7 +4,7 @@ A very very stupid fake sudo,using polkit `pkexec` to grant permissions.It can p
 
 ## Why this is created
 
-Both sudo and polkit are able to grant permissions to process,and sadly they  are both volunrable.As we can see, many CVEs of Linux desktop are related to both of them.Meanwhile,having to tools with the same functions on one computer sounds not satisfying.Polkit has better intergration with desktop environments(in particular,gnome) and allows a finer control of control of centralized system policy.But there are still some scripts depending on sudo.So it's a good idea to write some wrappers to make polkit have sudo functionalities,just like xwayland and pipewire-pulse.
+Both sudo and polkit are able to grant permissions to process,and sadly they  are both volunrable,and installing both is equivalent to doubling the probability of security problems.As we can see, many CVEs of Linux desktop are related to both of them.Meanwhile,having two tools with the same functions on one computer sounds not satisfying.Polkit has better intergration with desktop environments(in particular,gnome) and allows a finer control of control of centralized system policy.But there are still some scripts depending on sudo.So it's a good idea to write some wrappers to make polkit have sudo functionalities,just like xwayland and pipewire-pulse.
 
 ## Installation guide
 
