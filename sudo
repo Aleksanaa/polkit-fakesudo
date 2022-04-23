@@ -9,6 +9,7 @@ Edit=""
 RunInBackground=0
 Login=0
 Debug=0
+Help=0
 SpecifiedVariables=()
 
 printhelp(){
@@ -108,7 +109,7 @@ while : ;do
 		;;
 	-h | --help)
 		checkallconflicts
-		printhelp long
+		Help=1
 		;;
 	-b | --background)
 		RunInBackground=1
@@ -142,7 +143,7 @@ while : ;do
 		shift
 		;;
 	-*=*)
-		echo "WARNING: Option $1 not supported.Ignored."
+		echo "sudo: warning: Option $1 not supported.Ignored."
 		shift
 		;;
 	*=*)
@@ -154,7 +155,7 @@ while : ;do
 		break
 		;;
 	-*)
-		echo "WARNING: Option $1 not supported.Ignored."
+		echo "sudo: warning: Option $1 not supported.Ignored."
 		shift
 		;;
 	*)
@@ -162,6 +163,10 @@ while : ;do
 		;;
 	esac
 done
+
+if [[ $Help == 1 ]];then
+	printhelp long
+fi
 
 if [ "$Edit" ];then
 	if [ "$SUDO_EDITOR" ];then
@@ -214,6 +219,8 @@ Command=${Command}" "${SpecifiedVariables[*]}
 
 if [[ $Edit ]];then
 	Command=${Command}" "${editor}" "${Edit}
+elif [[ $MainCommand == "--help" ]];then
+	printhelp short
 elif [[ $MainCommand ]];then
 	Command=${Command}" "$@
 fi
@@ -221,9 +228,10 @@ fi
 if [[ $RunInBackground == 1 ]];then
 	Command=${Command}" > /dev/null 2>&1 &"
 fi
+    
 
 if [[ $Debug == 1 ]];then
-	echo "Debug Mode is on.The command Generated is:"
+	echo "Debug mode is on.The command generated is:"
 	echo -e "$Command"
 fi
 
