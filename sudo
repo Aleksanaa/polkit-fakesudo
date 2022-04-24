@@ -1,6 +1,13 @@
 #!/bin/bash
 
-ImplementDir="/usr/lib/polkit-fakesudo/implement.sh"
+if [[ $UID == 0 && $1 == '--implement' ]];then
+	cd $2
+	HOME=$3
+	shift 3
+	eval $@
+	exit $?
+fi
+
 ExecuteUser=""
 ExecuteGroup=()
 ChangeHomeDir=0
@@ -201,9 +208,9 @@ else
 	else
 		ExecuteUser="root"
 	fi
-	Command=${Command}" "${ImplementDir}" "${PWD}
+	Command=${Command}" "$(readlink -f $0)" --implement "${PWD}
 	if [[ $ChangeHomeDir == 0 ]];then
-		Command=${Command}" "${HOME}
+		Command=${Command}"  "${HOME}
 	else
 		Command=${Command}" "$(grep $ExecuteUser /etc/passwd | awk -F ':' '{print $6}')
 	fi
@@ -233,9 +240,8 @@ fi
 if [[ $Debug == 1 ]];then
 	echo "Debug mode is on.The command generated is:"
 	echo -e "$Command"
-fi
-
-eval "$Command"
-			
+else
+	eval "$Command"
+fi			
 
 
