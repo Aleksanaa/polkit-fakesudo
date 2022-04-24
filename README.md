@@ -16,7 +16,7 @@ yay -S polkit-fakesudo
 
 By the way,yay and paru can both use this sudo as real one:)
 
-If you are using other distributions,you can manually place `sudo` in `/usr/bin/` ,`implement.sh` in `/usr/lib/polkit-fakesudo` and `help1` and `help2` in `/usr/share/polkit-fakesudo` , but you'd better do it with your package manager.
+If you are using other distributions,you can manually place `sudo` in `/usr/bin/` ,and `help1` and `help2` in `/usr/share/polkit-fakesudo` , but you'd better do it with your package manager.
 
 Remember that in some cases this fake sudo cannot fully simulate the behavior of real sudo (which means,when you run some apps depending on sudo ,they may run into problems)and may contain severe bugs that hasn't been found!
 
