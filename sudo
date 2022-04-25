@@ -1,12 +1,5 @@
 #!/bin/bash
-
-if [[ $UID == 0 && $1 == '--implement' ]];then
-	cd "$2"
-	HOME=$3
-	shift 3
-	eval "$@"
-	exit $?
-fi
+set -e
 
 ExecUser=""
 ExecGroup=()
@@ -55,7 +48,7 @@ checkconflicts(){
 
 ConflictNum=0
 checkallconflicts(){
-	ConflictNum=$(($ConflictNum + 1))
+	ConflictNum=$((ConflictNum + 1))
 	if [[ $ConflictNum == 2 ]];then
 		echo "sudo: Only one of the -e, -h, -i, -l or -V options may be specified"
 		printhelp short
@@ -195,13 +188,13 @@ if [[ $Login == 1 ]];then
 	if [[ "$ExecUser" ]];then
 		Command=${Command}" "${ExecUser}
 	fi
-	if [[ "$ExecGroup" ]];then
-		for Group in $ExecGroup;do
+	if [[ ${#ExecGroup[@]} != 0 ]];then
+		for Group in "${ExecGroup[@]}";do
 			Command=${Command}" -g "${Group}
 		done
 	fi
 else
-	if [[ ! $Edit && ! $MainCommand ]];then
+	if [[ ! $Edit && ${#MainCommand[@]} == 0 ]];then
 		printhelp short
 	fi
 	if [[ $ExecUser ]];then
@@ -209,40 +202,45 @@ else
 	else
 		ExecUser="root"
 	fi
-	Command=${Command}" "$(readlink -f "$0")" --implement "${PWD}
+	Command=${Command}" bash -c \"cd "${PWD}
 	if [[ $ChangeHomeDir == 0 ]];then
-		Command=${Command}"  "${HOME}
+		Command=${Command}" && HOME=${HOME} &&"
 	else
 		Command=${Command}" "$(grep $ExecUser /etc/passwd | awk -F ':' '{print $6}')
 	fi
 fi
 
 if [[ $PreserveEnv == 1 ]];then
-	Command=${Command}" "$(echo $(env))
+	Command=${Command}" "$(env | xargs)
 elif [[ $PreserveEnv != 0 ]];then
 	Command=${Command}" "$(env | grep "$PreserveEnv")
 fi
 
-Command=${Command}" "${SpecifiedVariables[*]}
+if [[ ${#SpecifiedVariables[@]} != 0 ]];then
+	Command=${Command}" "${SpecifiedVariables[*]}
+fi
 
 if [[ $Edit ]];then
-	Command=${Command}" "${editor}" "${Edit}
-elif [[ $MainCommand == "--help" ]];then
+	Command=${Command}" ${editor} "${Edit}
+elif [[ ${MainCommand[1]} == "--help" ]];then
 	printhelp short
-elif [[ $MainCommand ]];then
-	Command=${Command}" "$@
+elif [[ ${#MainCommand[@]} != 0 ]];then
+	Command=${Command}" ${MainCommand[*]}"
 fi
 
 if [[ $RunInBackground == 1 ]];then
 	Command=${Command}" > /dev/null 2>&1 &"
 fi
     
+if [[ $Login != 1 ]];then
+	Command=${Command}"\""
+fi
 
 if [[ $Debug == 1 ]];then
 	echo "Debug mode is on.The command generated is:"
 	echo -e "$Command"
 else
 	eval "$Command"
-fi			
+fi
 
 
