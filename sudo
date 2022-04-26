@@ -202,12 +202,13 @@ else
 	else
 		ExecUser="root"
 	fi
-	Command=${Command}" bash -c \"cd "${PWD}
+	Command=${Command}" bash -c \"cd "${PWD}" && HOME="
 	if [[ $ChangeHomeDir == 0 ]];then
-		Command=${Command}" && HOME=${HOME} &&"
+		Command=${Command}${HOME}
 	else
-		Command=${Command}" "$(grep $ExecUser /etc/passwd | awk -F ':' '{print $6}')
+		Command=${Command}$(grep $ExecUser /etc/passwd | awk -F ':' '{print $6}')
 	fi
+	Command=${Command}" &&"
 fi
 
 if [[ $PreserveEnv == 1 ]];then
